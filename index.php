@@ -8,8 +8,20 @@ $db = new mysqli(
 	$connection[password], 
 	$connection[database]
 );
+
+if ($db->connect_errno) {
+    exit("Connection error\n");
+}
+
 $db->set_charset("utf8");
 $table = $connection[table];
+
+$getTable = $db->query("show tables 
+						  from $connection[database] 
+						  like '$connection[table]'");
+if ($getTabl->num_rows == 0) {
+	exit("Error: no such table exists '$table'");
+}
 //-------------------------------------------
 function create($table, $data) {
 	$keys = [];
