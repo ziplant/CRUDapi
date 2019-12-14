@@ -20,7 +20,7 @@ $getTable = $db->query("show tables
 						  from $connection[database] 
 						  like '$connection[table]'");
 if ($getTable->num_rows == 0) {
-	exit("Error: no such table exists '$table'");
+	exit("Error: no such table '$table'");
 }
 //-------------------------------------------
 function create($table, $data) {
