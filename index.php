@@ -99,7 +99,7 @@ $arr = [];
 //-------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 	//-------------------------------------------
-	$result = $db->query(read($table, $_GET));
+	$result = $db->query(read($table, $_SERVER['QUERY_STRING']));
 
 	while ($row = $result->fetch_assoc()) {
 		array_push($arr, createRow($row));
@@ -138,7 +138,7 @@ else if ($_SERVER['REQUEST_METHOD'] == "PUT") {
 		parse_str($postData, $data);
 	}
 
-	$update = $db->query(update($table, $data, $_GET));
+	$update = $db->query(update($table, $data, $_SERVER['QUERY_STRING']));
 
 	if ($update)
 		exit("Success\n");
@@ -148,7 +148,7 @@ else if ($_SERVER['REQUEST_METHOD'] == "PUT") {
 //-------------------------------------------
 else if ($_SERVER['REQUEST_METHOD'] == "DELETE") {
 	//-------------------------------------------
-	$delete = $db->query(delete($table, $_GET));
+	$delete = $db->query(delete($table, $_SERVER['QUERY_STRING']));
 
 	if ($delete)
 		exit("Success\n");
