@@ -1,7 +1,7 @@
 <?php 
-
+//-----------------------------------------------------------------------------
 require 'config.php';
-//-------------------------------------------
+//-----------------------------------------------------------------------------
 $db = new mysqli(
 	$connection[server], 
 	$connection[user], 
@@ -14,61 +14,105 @@ if ($db->connect_errno) {
 }
 
 $db->set_charset("utf8");
-$table = $connection[table];
 
 $getTable = $db->query("show tables 
 						  from $connection[database] 
 						  like '$connection[table]'");
 if ($getTable->num_rows == 0) {
-	exit("Error: no such table '$table'");
+	exit("Error: no such table '$connection[table]'");
 }
-//-------------------------------------------
-function create($table, $data) {
-	$keys = [];
-	$values = [];
+//-----------------------------------------------------------------------------
+class CRUD {
+	protected $table, $data, $condition;
+	//---------------------------------------------------------------------------
+	function __construct($db, $table) {
+		$this->table = $table;
+		$postData = file_get_contents('php://input');
+		$data = json_decode($postData, true);
 
-	foreach ($data as $key => $value) {
-		array_push($keys , $key);
-		array_push($values , "'".$value."'");
+		if (is_null($data)) {
+			parse_str($postData, $data);
+		}
+		$this->data = $data;
+		$this->condition = $this->createCondition($db);
 	}
+	//---------------------------------------------------------------------------
+	function createCondition($db) {
+		parse_str($_SERVER['QUERY_STRING'], $attr);
+		$condition = [];
+		$columns = [];
+		$result = $db->query("show columns from $this->table");
 
-	$keysStr = join(', ', $keys);
-	$valuesStr = join(', ', $values);
-	return "insert into $table($keysStr) 
-					values($valuesStr)";
-}
-//-------------------------------------------
-function read($table, $condition) {
-	if (count($_GET) == 0) {
-		return "select * from $table";
-	} else {
-		$conditionString = createCondition($table, $condition);
+		while ($col = $result->fetch_assoc()) {
+			array_push($columns, $col[Field]);
+		}
 
-	return "select * from $table 
-					where $conditionString";
+		foreach ($attr as $k => $v) {
+			try {
+				if (is_bool(array_search($k, $columns))) {
+					throw new Exception("Column '$k' is not valid\n");
+				}
+			} catch (Exception $ex) {
+				echo $ex->getMessage();
+			}
+
+			if ($v == 'null') {
+				array_push($condition, "$k is null or $k like 'null'");
+			} else {
+				array_push($condition, "$k = '$v'");
+			}
+		}
+
+		return join(' and ', $condition);
+	}
+	//---------------------------------------------------------------------------
+	public function dataExists() {
+		return (count($this->data) > 0) ? true : false;
+	}
+	//---------------------------------------------------------------------------
+	public function create() {
+		$keys = [];
+		$values = [];
+
+		foreach ($this->data as $k => $v) {
+			array_push($keys , $k);
+			array_push($values , "'".$v."'");
+		}
+
+		$keysStr = join(', ', $keys);
+		$valuesStr = join(', ', $values);
+		return "insert into $this->table(${keysStr}) 
+						values($valuesStr)";
+	}
+	//---------------------------------------------------------------------------
+	public function read() {
+		if (count($_GET) == 0) {
+			return "select * from $this->table";
+		} else {
+		return "select * from $this->table 
+						where $this->condition";
+		}
+	}
+	//---------------------------------------------------------------------------
+	public function update() {
+		$attr = [];
+
+		foreach ($this->data as $k => $v) {
+			array_push($attr , $k." = '".$v."'");
+		}
+
+		$attrString = join(', ', $attr);
+
+		return "update $this->table set $attrString 
+						where $this->condition";
+	}
+	//---------------------------------------------------------------------------
+	public function delete() {
+		return "delete from $this->table 
+						where $this->condition";
 	}
 }
-//-------------------------------------------
-function update($table, $data, $condition) {
-	$attr = [];
-
-	foreach ($data as $k => $v) {
-		array_push($attr , $k." = '".$v."'");
-	}
-
-	$attrString = join(', ', $attr);
-	$conditionString = createCondition($table, $condition);
-
-	return "update $table set $attrString 
-					where $conditionString";
-}
-//-------------------------------------------
-function delete($table, $condition) {
-	$conditionString = createCondition($table, $condition);
-	return "delete from $table 
-					where $conditionString";
-}
-//-------------------------------------------
+//-----------------------------------------------------------------------------
 function createRow($data) {
 	$arr = [];
 	foreach ($data as $k => $v) {
@@ -76,96 +120,64 @@ function createRow($data) {
 	}
 	return $arr;
 }
-//-------------------------------------------
-function createCondition($table, $attr) {
-	parse_str($attr, $attr);
-	$condition = [];
-	global $db;
-	$columns = [];
-	$result = $db->query("show columns from $table");
-
-	while ($col = $result->fetch_assoc()) {
-		array_push($columns, $col[Field]);
-	}
-
-	foreach ($attr as $k => $v) {
-		try {
-			if (is_bool(array_search($k, $columns))) {
-				throw new Exception("Column $k is not valid\n");
-			}
-		} catch (Exception $ex) {
-			echo $ex->getMessage();
-		}
-
-		if ($v == 'null') {
-			array_push($condition, "$k is null or $k like 'null'");
-		} else {
-			array_push($condition, "$k = '$v'");
-		}
-	}
-
-	return join(' and ', $condition);
+//-----------------------------------------------------------------------------
+function queryResponse($query) {
+	if($query)
+		exit("Success\n");
+	else
+		exit("Error\n");
 }
-//-------------------------------------------
+//-----------------------------------------------------------------------------
+$crud = new CRUD($db, $connection[table]);
 $arr = [];
-//-------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-	//-------------------------------------------
-	$result = $db->query(read($table, $_SERVER['QUERY_STRING']));
+//-----------------------------------------------------------------------------
+switch ($_SERVER['REQUEST_METHOD']) {
+	//---------------------------------------------------------------------------
+	case 'GET':
+		if (!$access[read]) {
+			exit("Error: access denied\n");
+		}
+		$result = $db->query($crud->read());
 
-	while ($row = $result->fetch_assoc()) {
-		array_push($arr, createRow($row));
-	}
+		while ($row = $result->fetch_assoc()) {
+			array_push($arr, createRow($row));
+		}
 
-	exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+		exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n");
+		break;
+	//---------------------------------------------------------------------------
+	case 'POST':
+		if (!$access[create]) {
+			exit("Error: access denied\n");
+		}
+		if (!$crud->dataExists()) {
+			exit("Error: missing data\n");
+		}
+		$insert = $db->query($crud->create());	
+
+		queryResponse($insert);
+		break;
+	//---------------------------------------------------------------------------
+	case 'PUT':
+		if (!$access[update]) {
+			exit("Error: access denied\n");
+		}
+		if (!$crud->dataExists()) {
+			exit("Error: missing data\n");	
+		}
+		$update = $db->query($crud->update());
+		
+		queryResponse($update);
+		break;
+	//---------------------------------------------------------------------------
+	case 'DELETE':
+		if (!$access[delete]) {
+			exit("Error: access denied\n");
+		}
+		$delete = $db->query($crud->delete());
+
+		queryResponse($delete);
+		break;
 }
-//-------------------------------------------
-else if ($_SERVER['REQUEST_METHOD'] == "POST") {
-	//-------------------------------------------
-	$postData = file_get_contents('php://input');
-	$data = json_decode($postData, true);
-	
-	if (is_null($data)) {
-		$data = $_POST;
-	}
-	if (count($data) > 0) {
-		$insert = $db->query(create($table, $data));	
-	}
-	else {
-		exit("Error\n");
-	}
-
-	if($insert)
-		exit("Success\n");
-	else
-		exit("Error\n");
-}
-//-------------------------------------------
-else if ($_SERVER['REQUEST_METHOD'] == "PUT") {
-	//-------------------------------------------
-	$postData = file_get_contents('php://input');
-	$data = json_decode($postData, true);
-
-	if (is_null($data)) {
-		parse_str($postData, $data);
-	}
-
-	$update = $db->query(update($table, $data, $_SERVER['QUERY_STRING']));
-
-	if ($update)
-		exit("Success\n");
-	else
-		exit("Error\n");	
-}
-//-------------------------------------------
-else if ($_SERVER['REQUEST_METHOD'] == "DELETE") {
-	//-------------------------------------------
-	$delete = $db->query(delete($table, $_SERVER['QUERY_STRING']));
-
-	if ($delete)
-		exit("Success\n");
-	else
-		exit("Error\n");
-}
-//-------------------------------------------
+//-----------------------------------------------------------------------------
 ?>
