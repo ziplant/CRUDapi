@@ -1,1 +1,1 @@
-# CRUDapi
+# CRUDapi - MySQL CRUD functions
