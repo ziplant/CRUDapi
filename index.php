@@ -1,4 +1,4 @@
-<?php 
+﻿<?php 
 //-----------------------------------
 // Copyright © 2019 ZipLant 
 // https://github.com/ziplant/CRUDapi
@@ -6,10 +6,10 @@
 require 'config.php';
 //-----------------------------------------------------------------------------
 $db = new mysqli(
-	$connection[server], 
-	$connection[user], 
-	$connection[password], 
-	$connection[database]
+	$connection['server'], 
+	$connection['user'], 
+	$connection['password'], 
+	$connection['database']
 );
 
 if ($db->connect_errno) {
@@ -47,7 +47,7 @@ class CRUD {
 		$result = $db->query("show columns from $this->table");
 
 		while ($col = $result->fetch_assoc()) {
-			array_push($columns, $col[Field]);
+			array_push($columns, $col['Field']);
 		}
 
 		foreach ($attr as $k => $v) {
@@ -131,13 +131,13 @@ function queryResponse($query) {
 		exit("Error\n");
 }
 //-----------------------------------------------------------------------------
-$crud = new CRUD($db, $connection[table]);
+$crud = new CRUD($db, $connection['table']);
 $arr = [];
 //-----------------------------------------------------------------------------
 switch ($_SERVER['REQUEST_METHOD']) {
 	//---------------------------------------------------------------------------
 	case 'GET':
-		if (!$access[read]) {
+		if (!$access['read']) {
 			exit("Error: access denied\n");
 		}
 		$result = $db->query($crud->read());
@@ -150,7 +150,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 		break;
 	//---------------------------------------------------------------------------
 	case 'POST':
-		if (!$access[create]) {
+		if (!$access['create']) {
 			exit("Error: access denied\n");
 		}
 		if (!$crud->dataExists()) {
@@ -162,7 +162,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 		break;
 	//---------------------------------------------------------------------------
 	case 'PUT':
-		if (!$access[update]) {
+		if (!$access['update']) {
 			exit("Error: access denied\n");
 		}
 		if (!$crud->dataExists()) {
@@ -174,7 +174,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 		break;
 	//---------------------------------------------------------------------------
 	case 'DELETE':
-		if (!$access[delete]) {
+		if (!$access['delete']) {
 			exit("Error: access denied\n");
 		}
 		$delete = $db->query($crud->delete());
