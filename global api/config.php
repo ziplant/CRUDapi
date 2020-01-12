@@ -2,8 +2,8 @@
 
 $connection = [
 	"server" => "localhost",
-	"user" => "root",
-	"password" => "5572505"
+	"user" => "my_user",
+	"password" => "my_password"
 ];
 
 $access = [
