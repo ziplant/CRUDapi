@@ -1,7 +1,7 @@
 <?php 
 
 $connection = [
-	"server" => "localhost",
+	"server" => "server_name",
 	"user" => "my_user",
 	"password" => "my_password",
 	"database" => "my_db",
