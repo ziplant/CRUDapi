@@ -6,6 +6,8 @@
 require 'config.php';
 require 'crud.php';
 
+header("Access-Control-Allow-Origin: *");
+
 $url = parse_url($_SERVER['REQUEST_URI']);
 $root = $_SERVER['PHP_SELF'];
 $root = substr_replace($root, '', strrpos($root, '/'));
@@ -33,20 +35,25 @@ if ($db->connect_errno) {
 
 $db->set_charset("utf8");
 
+
 $getTable = $db->query("show tables 
 						  from $path[database] 
-						  like '$path[table]'");
+							like '$path[table]'");
+
 if ($getTable->num_rows == 0) {
 	exit("Error: no such table '$path[table]'\n");
+}							
+
+$access = false;
+foreach ($allowed as $allowedDB => $allowedTB) {
+	if ($allowedDB == $path['database']) {
+		$access = in_array($path['table'], $allowedTB);
+	}
+}
+if (!$access) {
+	exit("Error: access denied\n");
 }
 
-function createRow($data) {
-	$arr = [];
-	foreach ($data as $k => $v) {
-		$arr = array_merge($arr, array($k => $v));
-	}
-	return $arr;
-}
 
 function queryResponse($db, $query) {
 	if($query)
@@ -60,21 +67,15 @@ $arr = [];
 
 switch ($_SERVER['REQUEST_METHOD']) {
 	case 'GET':
-		if (!$access['read']) {
-			exit("Error: access denied\n");
-		}
 		$result = $db->query($crud->read());
 
 		while ($row = $result->fetch_assoc()) {
-			array_push($arr, createRow($row));
+			array_push($arr, $row);
 		}
 
 		exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n");
 		break;
 	case 'POST':
-		if (!$access['create']) {
-			exit("Error: access denied\n");
-		}
 		if (!$crud->dataExists()) {
 			exit("Error: missing data\n");
 		}
@@ -83,9 +84,6 @@ switch ($_SERVER['REQUEST_METHOD']) {
 		queryResponse($db, $insert);
 		break;
 	case 'PUT':
-		if (!$access['update']) {
-			exit("Error: access denied\n");
-		}
 		if (!$crud->dataExists()) {
 			exit("Error: missing data\n");	
 		}
@@ -94,9 +92,6 @@ switch ($_SERVER['REQUEST_METHOD']) {
 		queryResponse($db, $update);
 		break;
 	case 'DELETE':
-		if (!$access['delete']) {
-			exit("Error: access denied\n");
-		}
 		$delete = $db->query($crud->delete());
 
 		queryResponse($db, $delete);

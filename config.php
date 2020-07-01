@@ -6,11 +6,13 @@ $connection = [
 	"password" => "my_password"
 ];
 
-$access = [
-	"create" => true,
-	"read" => true,
-	"update" => true,
-	"delete" => true
+$allowed = [
+	"my_database1" => [
+		"my_table1",
+		"my_table2"
+	],
+	"my_database2" => [
+		"my_table1"
+	]
 ];
-
 ?>
