@@ -13,13 +13,24 @@ $root = $_SERVER['PHP_SELF'];
 $root = substr_replace($root, '', strrpos($root, '/'));
 $path = explode('/', trim(str_replace($root, '', $url['path']), '/'));
 
+$res = [
+	"Status" => "",
+	"Message" => ""
+];
+
+function apiResponse($array) {
+	exit(json_encode($array, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
+}
+
 if (count($path) == 2) {
 	$path = [
 		"database" => $path[0],
 		"table" => $path[1]
 	];
 } else {
-	exit("Error: incorrect path, expected $root/dbname/tbname/\n");
+	$res['Status'] = "Error";
+	$res['Message'] = "Incorrect path, expected $root/dbname/tbname/";
+	apiResponse($res);
 }
 
 $db = new mysqli(
@@ -30,7 +41,9 @@ $db = new mysqli(
 );
 
 if ($db->connect_errno) {
-    exit("Connection error\n");
+		$res['Status'] = "Error";
+		$res['Message'] = "Connection error";
+		apiResponse($res);
 }
 
 $db->set_charset("utf8");
@@ -41,7 +54,9 @@ $getTable = $db->query("show tables
 							like '$path[table]'");
 
 if ($getTable->num_rows == 0) {
-	exit("Error: no such table '$path[table]'\n");
+	$res['Status'] = "Error";
+	$res['Message'] = "No such table '$path[table]'";
+	apiResponse($res);
 }							
 
 $access = false;
@@ -51,15 +66,25 @@ foreach ($allowed as $allowedDB => $allowedTB) {
 	}
 }
 if (!$access) {
-	exit("Error: access denied\n");
+	$res['Status'] = "Error";
+	$res['Message'] = "Access denied";
+	apiResponse($res);
 }
 
 
 function queryResponse($db, $query) {
-	if($query)
-		exit("Success\n");
-	else
-		exit("Error: " . $db->error . "\n");
+	if($query) {
+		return [
+			"Status" => "Success",
+			"Message" => "Query completed"
+		];
+	}
+	else {
+		return [
+			"Status" => "Error",
+			"Message" => $db->error
+		];
+	}	
 }
 
 $crud = new CRUD($db, $path['table']);
@@ -73,28 +98,32 @@ switch ($_SERVER['REQUEST_METHOD']) {
 			array_push($arr, $row);
 		}
 
-		exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n");
+		exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
 		break;
 	case 'POST':
 		if (!$crud->dataExists()) {
-			exit("Error: missing data\n");
+			$res['Status'] = "Error";
+			$res['Message'] = "Missing data";
+			apiResponse($res);
 		}
 		$insert = $db->query($crud->create());	
 
-		queryResponse($db, $insert);
+		apiResponse(queryResponse($db, $insert));
 		break;
 	case 'PUT':
 		if (!$crud->dataExists()) {
-			exit("Error: missing data\n");	
+			$res['Status'] = "Error";
+			$res['Message'] = "Missing data";
+			apiResponse($res);	
 		}
 		$update = $db->query($crud->update());
 		
-		queryResponse($db, $update);
+		apiResponse(queryResponse($db, $update));
 		break;
 	case 'DELETE':
 		$delete = $db->query($crud->delete());
 
-		queryResponse($db, $delete);
+		apiResponse(queryResponse($db, $delete));
 		break;
 }
 ?>
