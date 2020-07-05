@@ -98,7 +98,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 			array_push($arr, $row);
 		}
 
-		exit(json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
+		exit(apiResponse($arr));
 		break;
 	case 'POST':
 		if (!$crud->dataExists()) {
