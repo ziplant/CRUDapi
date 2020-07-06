@@ -1,0 +1,15 @@
+{
+	"connection": {
+		"server": "localhost",
+		"user": "root",
+		"password": "5572505"
+	},
+	"allowed": {
+		"cook": [
+			"category",
+			"product",
+			"recipe",
+			"selection_type"
+		]
+	}
+}
