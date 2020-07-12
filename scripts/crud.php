@@ -26,10 +26,11 @@ class CRUD {
 
 		foreach ($attr as $k => $v) {
 			if (is_bool(array_search(strtolower($k), $columns))) {
-				exit([
+				exit(json_encode(
+					[
 					"Status" => "Error",
 					"Message" => "Column '$k' is not valid\n"
-				]);
+					], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
 			}
 
 			if ($v == 'null') {
