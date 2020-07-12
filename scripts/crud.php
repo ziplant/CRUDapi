@@ -26,7 +26,10 @@ class CRUD {
 
 		foreach ($attr as $k => $v) {
 			if (is_bool(array_search(strtolower($k), $columns))) {
-				exit("Column '$k' is not valid\n");
+				exit([
+					"Status" => "Error",
+					"Message" => "Column '$k' is not valid\n"
+				]);
 			}
 
 			if ($v == 'null') {
