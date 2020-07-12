@@ -1,6 +1,6 @@
 {
 	"connection": {
-		"server": "your_server",
+		"host": "your_server",
 		"user": "your_username",
 		"password": "your_password"
 	},

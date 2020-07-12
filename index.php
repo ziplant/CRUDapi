@@ -11,6 +11,8 @@ $config = json_decode(file_get_contents('config.json'), true);
 
 header("Access-Control-Allow-Origin: *");
 
+$root = $_SERVER['PHP_SELF'];
+$root = substr_replace($root, '', strrpos($root, '/'));
 $path = getPath();
 
 if (!$path) {
@@ -18,7 +20,7 @@ if (!$path) {
 }
 
 $db = new mysqli(
-	$config['connection']['server'], 
+	$config['connection']['host'], 
 	$config['connection']['user'], 
 	$config['connection']['password'], 
 	$path['database']
