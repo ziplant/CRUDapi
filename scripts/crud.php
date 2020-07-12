@@ -29,7 +29,7 @@ class CRUD {
 				exit(json_encode(
 					[
 					"Status" => "Error",
-					"Message" => "Column '$k' is not valid\n"
+					"Message" => "Column '$k' is not valid"
 					], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n");
 			}
 
